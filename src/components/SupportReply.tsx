@@ -1,13 +1,10 @@
+"use client";
+
 import { useEffect, useRef } from "react";
+import { FiStar } from "react-icons/fi";
 
 type Props = {
-  data: {
-    feedback: string;
-    User: {
-      id: string;
-      name: string;
-    };
-  }[];
+  data: any[];
 };
 
 export default function SupportReply({ data }: Props) {
@@ -20,24 +17,57 @@ export default function SupportReply({ data }: Props) {
     }
   }, [data]);
 
+  if (!data || data.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <p>No hay feedback aún para este ticket.</p>
+      </div>
+    );
+  }
+
   return (
-    <>
-      {data?.map((each) => {
+    <div ref={chatContainerRef} className="space-y-4">
+      {data.map((feedback: any) => {
+        const userName = feedback.profiles?.full_name || feedback.profiles?.email || "Usuario";
+        
         return (
           <div
-            ref={chatContainerRef}
-            key={each.User?.id}
-            className=" mb-6 border  p-2 rounded flex justify-end flex-col  text-sm "
+            key={feedback.id}
+            className="border border-gray-200 rounded-lg p-4 bg-gray-50"
           >
-            <div className="flex border-b justify-end pb-2 mb-1 w-fit space-x-2 items-center">
-              <div className="w-6 h-6 rounded-full bg-gray-400"></div>
-              <p> {each.User?.name} </p>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white font-semibold">
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">{userName}</p>
+                  <p className="text-xs text-gray-500">
+                    {new Date(feedback.created_at).toLocaleString("es-ES")}
+                  </p>
+                </div>
+              </div>
+              {feedback.rating && (
+                <div className="flex items-center space-x-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <FiStar
+                      key={star}
+                      className={`w-4 h-4 ${
+                        star <= feedback.rating
+                          ? "text-yellow-400 fill-yellow-400"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-
-            <p>{each.feedback}</p>
+            {feedback.comment && (
+              <p className="text-gray-700 mt-2">{feedback.comment}</p>
+            )}
           </div>
         );
       })}
-    </>
+    </div>
   );
 }

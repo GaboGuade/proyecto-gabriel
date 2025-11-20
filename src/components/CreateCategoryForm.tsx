@@ -1,71 +1,116 @@
 "use client";
 
-import { useCategoryCrateMutation } from "@/redux/features/category/categoryApi";
-import { useEffect, useState } from "react";
-import { Dots } from "react-activity";
+import { useState } from "react";
 import { toast } from "react-toastify";
+import { createCategory } from "@/services/categories";
+import { useDispatch } from "react-redux";
+import { openCategoryForm } from "@/redux/features/category/categorySlice";
 
 type Props = {
-  refetch: () => void;
+  onSuccess: () => void;
 };
 
-export default function CreateCategoryForm({ refetch }: Props) {
-  const [categoryType, setCategoryType] = useState<string>("");
-  const [categoryCrate, { error, isLoading, isSuccess }] =
-    useCategoryCrateMutation<any>();
+export default function CreateCategoryForm({ onSuccess }: Props) {
+  const dispatch = useDispatch();
+  const [name, setName] = useState<string>("");
+  const [type, setType] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [loading, setLoading] = useState(false);
 
-  let content;
-
-  const handleCreateType = async (e: any) => {
+  const handleCreateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    await categoryCrate({ type: categoryType.toLowerCase() });
-    setCategoryType("");
-    refetch();
+    
+    if (!name.trim()) {
+      toast.error("Por favor ingresa el nombre de la categoría");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await createCategory({
+        name: name.trim(),
+        type: type.trim() ? type.trim().toLowerCase() : undefined,
+        description: description.trim() || undefined,
+      });
+      
+      toast.success(`Categoría "${name}" creada exitosamente`);
+      setName("");
+      setType("");
+      setDescription("");
+      dispatch(openCategoryForm(false));
+      onSuccess();
+    } catch (error: any) {
+      toast.error("Error al crear categoría: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => {
-    if (error) {
-      toast.error(error?.data?.message);
-    }
-
-    if (isLoading) {
-      content = <Dots />;
-    }
-
-    if (isSuccess) {
-      toast.success(` ${categoryType} Create Successfully! `);
-    }
-  }, [isSuccess, error, isLoading]);
-
   return (
-    <>
-      <div className="mt-4">
-        <form action="">
-          <div className="mb-4">
-            <label htmlFor="category" className="font-[400]">
-              Category
-            </label>
-            <input
-              onChange={(e) => setCategoryType(e.target.value)}
-              type="text"
-              id="category"
-              value={categoryType}
-              className="border w-full py-2 mt-1 rounded px-1 outline-none text-sm"
-              placeholder="Type category name"
-            />
-          </div>
+    <div className="mt-4 bg-white p-6 rounded-lg border border-gray-200">
+      <h3 className="text-lg font-semibold mb-4">Crear Nueva Categoría</h3>
+      <form onSubmit={handleCreateCategory}>
+        <div className="mb-4">
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+            Nombre de la Categoría *
+          </label>
+          <input
+            onChange={(e) => setName(e.target.value)}
+            type="text"
+            id="name"
+            value={name}
+            className="border w-full py-2 mt-1 rounded-md px-3 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            placeholder="Ej: Soporte Técnico"
+            required
+          />
+        </div>
 
-          <div className="">
-            <button
-              onClick={handleCreateType}
-              className="mt-4 flex bg-orange-500 px-4 py-1 rounded text-white font-serif hover:bg-orange-500/80 duration-150 ease-linear"
-              type="submit"
-            >
-              {isLoading ? content : "Submit"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </>
+        <div className="mb-4">
+          <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+            Tipo/Código <span className="text-gray-400 text-xs">(Opcional)</span>
+          </label>
+          <input
+            onChange={(e) => setType(e.target.value)}
+            type="text"
+            id="type"
+            value={type}
+            className="border w-full py-2 mt-1 rounded-md px-3 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            placeholder="Ej: technical, billing, account"
+          />
+          <p className="text-xs text-gray-500 mt-1">Se generará automáticamente si no lo ingresas</p>
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+            Descripción (Opcional)
+          </label>
+          <textarea
+            onChange={(e) => setDescription(e.target.value)}
+            id="description"
+            value={description}
+            rows={3}
+            className="border w-full py-2 mt-1 rounded-md px-3 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+            placeholder="Descripción de la categoría..."
+          />
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-orange-500 px-6 py-2 rounded-md text-white font-semibold hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? "Creando..." : "Crear Categoría"}
+          </button>
+          <button
+            type="button"
+            onClick={() => dispatch(openCategoryForm(false))}
+            className="bg-gray-200 px-6 py-2 rounded-md text-gray-700 font-semibold hover:bg-gray-300 transition-colors"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

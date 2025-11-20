@@ -1,65 +1,55 @@
-import {
-  useCategoryDeleteByIDMutation,
-  useGetAllCategoryQuery,
-} from "@/redux/features/category/categoryApi";
-import { useUserDeleteMutation } from "@/redux/features/user/userApi";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import ChangeCustomerRoll from "./ChangeCustomerRoll";
 import Loading from "./Loading";
 import ModalState from "./Modal";
+import { deleteCategory } from "@/services/categories";
+import { FiEdit2, FiTrash2 } from "react-icons/fi";
+import UserTagManager from "./UserTagManager";
 
 type Props = {
   customer?: boolean;
   user?: {
-    assign_to: {
+    assign_to?: {
       type: string;
-    };
+    } | null;
     name: string;
     id: string;
     roll: string;
     email: string;
+    department?: string;
   }[];
   categoryLists?: {
-    categoryID: string;
+    id?: number;
+    categoryID?: number;
     type: string;
+    name?: string;
+    description?: string;
   }[];
+  onDelete?: () => void;
 };
 
-export default function CategoryList({ customer, user, categoryLists }: Props) {
-  const [categoryDeleteByID, { error, isLoading, isSuccess }] =
-    useCategoryDeleteByIDMutation<any>();
-
+export default function CategoryList({ customer, user, categoryLists, onDelete }: Props) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [selectedUser, setSelectedUser] = useState<string>("");
+  const [deleting, setDeleting] = useState<number | null>(null);
 
-  if (isLoading) {
-    <Loading />;
-  }
-
-  useEffect(() => {
-    if (error) {
-      toast.error(error?.data?.message);
+  async function handleDeleteCategory(categoryId: number) {
+    if (!confirm("¿Estás seguro de que quieres eliminar esta categoría?")) {
+      return;
     }
-    if (isSuccess) {
-      toast.success("Delete Successfully!");
+
+    setDeleting(categoryId);
+    try {
+      await deleteCategory(categoryId);
+      toast.success("Categoría eliminada exitosamente");
+      if (onDelete) onDelete();
+    } catch (error: any) {
+      toast.error("Error al eliminar categoría: " + error.message);
+    } finally {
+      setDeleting(null);
     }
-  }, [isSuccess]);
-
-  const {
-    data,
-    isLoading: categoryLoading,
-    error: categoryError,
-  } = useGetAllCategoryQuery<any>(undefined, {
-    refetchOnMountOrArgChange: true,
-  });
-
-  if (categoryError) {
-    toast.error(categoryError?.data?.message);
   }
-
-  const [userDelete, { data: deleteUser, error: deleteError }] =
-    useUserDeleteMutation<any>();
 
   return (
     <div>
@@ -67,21 +57,24 @@ export default function CategoryList({ customer, user, categoryLists }: Props) {
         <div className="overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 sm:px-6 lg:px-8">
             <div className="overflow-hidden">
-              <table className="min-w-full text-left text-sm font-light">
-                <thead className="border-b font-medium dark:border-neutral-500">
+              <table className="min-w-full text-left text-sm font-light bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
+                <thead className="border-b font-medium dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                   <tr>
                     {customer ? (
                       <>
-                        <th className="px-2 py-4">Email</th>
-                        <th className="px-2 py-4">Name</th>
-                        <th className="px-2 py-4">Roll</th>
-                        <th className="px-2 py-4">Assign Type</th>
-                        <th className="px-2 py-4">Action</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Email</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Nombre</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Rol</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Departamento</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Etiquetas</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acción</th>
                       </>
                     ) : (
                       <>
-                        <th className="px-2 py-4">ID</th>
-                        <th className="px-2 py-4">Category Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">ID</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Nombre</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Tipo</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Acciones</th>
                       </>
                     )}
                   </tr>
@@ -90,64 +83,129 @@ export default function CategoryList({ customer, user, categoryLists }: Props) {
                   {/* {data?.map((each) => (
                     <TableBody key={each.tiket_id} each={each} />
                   ))} */}
-                  {user?.map(({ id, name, email, roll, assign_to }) => (
-                    <tr key={id} className="border-b  dark:border-neutral-200 ">
-                      <tr className="px-2 py-4 ">{email}</tr>
-                      <th className="px-2 py-4 font-normal">{name}</th>
-                      <td className="whitespace-nowrap">{roll}</td>
-                      <td className="whitespace-nowrap  capitalize ">
-                        {assign_to?.type}
+                  {user?.map(({ id, name, email, roll, assign_to, department }) => (
+                    <tr key={id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {email || "Sin email"}
                       </td>
-
-                      <td className="whitespace-nowrap py-4 space-x-3 flex items-center">
-                        {roll === "customer" ? (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          roll === "admin" 
+                            ? "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300"
+                            : roll === "assistance"
+                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
+                            : roll === "empleado"
+                            ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+                            : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
+                        } capitalize`}>
+                          {roll === "admin" ? "Admin" : 
+                           roll === "assistance" ? "Asistente" :
+                           roll === "empleado" ? "Empleado" : "Cliente"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 capitalize">
+                        {department 
+                          ? department.replace(/_/g, ' ')
+                          : roll === "empleado" 
+                          ? "Sin departamento"
+                          : "N/A"}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <UserTagManager userId={id} />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {(roll === "customer" || roll === "empleado") ? (
                           <button
                             onClick={() => {
-                              setIsOpen(true);
+                              // Establecer el usuario ANTES de abrir el modal
                               setSelectedUser(id);
+                              // Pequeño delay para asegurar que el estado se actualizó
+                              setTimeout(() => {
+                                setIsOpen(true);
+                              }, 100);
                             }}
-                            className="bg-gray-400 px-2 py-1 flex justify-center items-center rounded text-white font-medium hover:bg-orange-400  duration-200 ease-linear"
+                            className="bg-orange-500 dark:bg-orange-600 px-4 py-2 flex justify-center items-center rounded-md text-white font-medium hover:bg-orange-600 dark:hover:bg-orange-700 transition-colors"
                           >
-                            Change Roll
+                            Cambiar Rol
                           </button>
                         ) : roll === "assistance" ? (
-                          // <button
-                          //   onClick={() => {
-                          //     window.alert("are you sure !");
-                          //     userDelete(id);
-                          //   }}
-                          // >
-                          //   <TiDeleteOutline size={20} color="red" />
-                          // </button>
-                          <></>
+                          <span className="text-gray-400 dark:text-gray-500 text-sm">Asistente activo</span>
+                        ) : roll === "admin" ? (
+                          <span className="text-gray-400 dark:text-gray-500 text-sm">Administrador</span>
                         ) : null}
                       </td>
                     </tr>
                   ))}
                   {/* Category List */}
-                  {categoryLists?.map(({ categoryID, type }) => (
-                    <tr
-                      key={categoryID}
-                      className="border-b dark:border-neutral-200 "
-                    >
-                      <td className="whitespace-nowrap pl-2  ">{categoryID}</td>
-                      <td className="whitespace-nowrap pl-2 "> {type} </td>
-
-                      <td className="whitespace-nowrap py-4 pl-4 space-x-3 flex items-center">
-                        {/* <button onClick={() => categoryDeleteByID(categoryID)}>
-                          <BsXSquare color="red" />
-                        </button> */}
-                      </td>
-                    </tr>
-                  ))}
+                  {categoryLists?.map((category: any) => {
+                    const categoryId = category.id || category.categoryID;
+                    const categoryName = category.name || category.type;
+                    const categoryType = category.type;
+                    
+                    return (
+                      <tr
+                        key={categoryId}
+                        className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      >
+                        <td className="whitespace-nowrap px-6 py-4 font-medium text-gray-900 dark:text-gray-100">
+                          {categoryId}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <div>
+                            <div className="font-semibold text-gray-900 dark:text-gray-100">{categoryName}</div>
+                            {category.description && (
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                {category.description}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-sm">
+                            {categoryType}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => handleDeleteCategory(categoryId)}
+                              disabled={deleting === categoryId}
+                              className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded disabled:opacity-50 transition-colors"
+                              title="Eliminar categoría"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {/* End */}
-                  <ModalState isOpen={isOpen} onClose={setIsOpen}>
-                    <ChangeCustomerRoll
-                      selectedUser={selectedUser}
-                      data={data}
-                      setIsOpen={setIsOpen}
-                    />
-                  </ModalState>
+                  {customer && selectedUser && (
+                    <ModalState isOpen={isOpen} onClose={() => {
+                      setIsOpen(false);
+                      // Limpiar selectedUser cuando se cierra el modal
+                      setTimeout(() => setSelectedUser(""), 300);
+                    }}>
+                      <ChangeCustomerRoll
+                        selectedUser={selectedUser}
+                        data={categoryLists || []}
+                        setIsOpen={setIsOpen}
+                        onSuccess={() => {
+                          setIsOpen(false);
+                          // Limpiar selectedUser
+                          setSelectedUser("");
+                          // Recargar la lista de usuarios
+                          if (onDelete) {
+                            onDelete();
+                          }
+                        }}
+                      />
+                    </ModalState>
+                  )}
                 </tbody>
               </table>
             </div>

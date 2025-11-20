@@ -1,285 +1,334 @@
-import { global, hero } from "@/assets";
-import Image from "next/image";
+"use client";
+
 import Link from "next/link";
-import { BiSpreadsheet } from "react-icons/bi";
-import { FcDataConfiguration } from "react-icons/fc";
-import { GrServices } from "react-icons/gr";
-import { MdDashboard, MdOutlineSupportAgent } from "react-icons/md";
+import { 
+  FiFileText, 
+  FiClock, 
+  FiCheckCircle, 
+  FiUsers, 
+  FiBarChart2,
+  FiShield,
+  FiZap,
+  FiArrowRight
+} from "react-icons/fi";
+
+// Componentes auxiliares definidos antes de Home
+function FeatureCard({
+  icon,
+  title,
+  description,
+  color,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  color: string;
+}) {
+  const colorClasses: Record<string, string> = {
+    orange: "bg-orange-100 text-orange-600",
+    blue: "bg-blue-100 text-blue-600",
+    green: "bg-green-100 text-green-600",
+    purple: "bg-purple-100 text-purple-600",
+    yellow: "bg-yellow-100 text-yellow-600",
+    red: "bg-red-100 text-red-600",
+  };
+
+  const colorClass = colorClasses[color] || colorClasses.orange;
+
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+      <div className={`w-16 h-16 ${colorClass} rounded-lg flex items-center justify-center mb-4`}>
+        {icon}
+      </div>
+      <h3 className="text-xl font-semibold text-gray-900 mb-2">{title}</h3>
+      <p className="text-gray-600">{description}</p>
+    </div>
+  );
+}
+
+function StepCard({
+  number,
+  title,
+  description,
+  icon,
+}: {
+  number: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <div className="text-center">
+      <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500 text-white rounded-full text-2xl font-bold mb-4 relative">
+        {number}
+        <div className="absolute -top-2 -right-2 w-8 h-8 bg-orange-600 rounded-full flex items-center justify-center">
+          {icon}
+        </div>
+      </div>
+      <h3 className="text-xl font-semibold text-gray-900 mb-2">{title}</h3>
+      <p className="text-gray-600">{description}</p>
+    </div>
+  );
+}
 
 export default function Home() {
   return (
-    <main className="">
-      <div className="containers">
-        {/* Hero */}
-        <div
-          id="home"
-          className="flex   flex-col my-8 justify-center items-center"
-        >
-          <h1 className=" text-center font-semibold text-black text-2xl lg:text-4xl  md:w-[80%] w-full mx-auto xl:leading-[60px]">
-            Get The World Most Popular Customer Support Software
-          </h1>
-          <p className="text-center md:w-[80%] w-full mx-auto py-4">
-            We believe in helping you
-            <span className="text-orange-500 px-2 font-semibold">
-              Make. Happy. Customers.
-            </span>
-            Easily scale and streamline your customer service and drastically
-            improve your customer’s experience.
-          </p>
-
-          <Link
-            className="bg-orange-500 px-6 py-2 rounded-full text-white font-semibold my-6"
-            href={"/login"}
-          >
-            Get Started
-          </Link>
-          <Image src={hero} alt="hero"></Image>
-        </div>
-        {/* Hero End */}
-      </div>
-      {/* How to use it */}
-      <div id="features" className="w-full bg-slate-50 my-6">
-        <p className="py-12 text-black text-2xl font-semibold text-center">
-          SOME OF OUR FEATURES
-        </p>
-
-        <div className="containers">
-          <div className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full pb-6">
-            {data.map((each) => (
-              <div
-                className=" flex flex-col  items-center p-2 space-y-2 h-44 w-60 mx-auto"
-                key={each.id}
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section id="inicio" className="bg-gradient-to-br from-orange-500 via-orange-600 to-orange-700 text-white">
+        <div className="containers py-20 md:py-32">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 rounded-full mb-6">
+              <FiFileText className="w-10 h-10" />
+            </div>
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+              Sistema de Gestión de Incidencias
+            </h1>
+            <p className="text-xl md:text-2xl text-orange-50 mb-8 leading-relaxed">
+              <span className="font-semibold">Antares Panamericana</span>
+            </p>
+            <p className="text-lg md:text-xl text-orange-100 mb-10 max-w-2xl mx-auto">
+              Gestiona, rastrea y resuelve incidencias de manera eficiente. 
+              Plataforma profesional para el control y seguimiento de tickets técnicos.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/login"
+                className="bg-white text-orange-600 px-8 py-4 rounded-lg font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
               >
-                {each.icon}
-                <h3 className="text-black text-xl whitespace-nowrap font-semibold">
-                  {each.level}
-                </h3>
-                <p className="text-sm">{each.description}</p>
-              </div>
-            ))}
+                Iniciar Sesión
+                <FiArrowRight className="w-5 h-5" />
+              </Link>
+              <Link
+                href="/register"
+                className="bg-orange-800 text-white px-8 py-4 rounded-lg font-semibold text-lg border-2 border-white/30 hover:bg-orange-900 transition-all duration-300 flex items-center justify-center gap-2"
+              >
+                Crear Cuenta
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
-      {/* How to use it End */}
-      <div className="containers mb-12 flex gap-6 items-center justify-center flex-col-reverse lg:flex-row">
-        <div className="lg:w-1/2 w-full">
-          <h3 className="text-2xl text-black font-semibold pb-6">
-            We are not the only ones excited about spTalk...
-          </h3>
-          <p className="pb-6">
-            Thousands of customers in over 190 countries trust and use spTalk
-            for customer support.
-          </p>
+      </section>
 
-          <ul className="list-disc ml-6 mb-6">
-            {[
-              "5+ million spTalk users worldwide",
-              "15,000+ businesses use spTalk worldwide",
-              " spTalk seamlessly routes inquiries created via email, web-forms and API.",
-              "Simple and easy-to-use web-based customer support platform.",
-              " spTalk comes packed with more features and tools than most of the expensive (and complex) support ticket systems on the market.",
-              "The best part is that spTalk is completely free.",
-            ].map((each, index) => (
-              <li className="py-1" key={index}>
-                {each}
-              </li>
-            ))}
-          </ul>
-
-          <Link
-            className="bg-orange-500 px-12 mb-12 py-2 rounded-full text-white font-semibold my-6"
-            href={"/login"}
-          >
-            Get Started
-          </Link>
-        </div>
-        <div>
-          <Image src={global} alt="global" />
-        </div>
-      </div>
-
-      {/*  */}
-      <section className="text-gray-600 body-font relative">
-        <div className="container px-5 py-24 mx-auto">
-          <div className="flex flex-col text-center w-full mb-12">
-            <h1 className="sm:text-3xl text-2xl font-medium title-font mb-4 text-gray-900">
-              Contact Us
-            </h1>
-            <p className="lg:w-2/3 mx-auto leading-relaxed text-base">
-              Whatever cardigan tote bag tumblr hexagon brooklyn asymmetrical
-              gentrify.
+      {/* Features Section - Sistema de Incidencias */}
+      <section id="caracteristicas" className="py-20 bg-white">
+        <div className="containers">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Gestión Profesional de Incidencias
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Herramientas completas para el control y seguimiento de incidencias técnicas
             </p>
           </div>
-          <div className="lg:w-1/2 md:w-2/3 mx-auto">
-            <div className="flex flex-wrap -m-2">
-              <div className="p-2 w-1/2">
-                <div className="relative">
-                  <label
-                    htmlFor="name"
-                    className="leading-7 text-sm text-gray-600"
-                  >
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    className="w-full bg-gray-100 bg-opacity-50 rounded border border-gray-300 focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out"
-                  />
-                </div>
-              </div>
-              <div className="p-2 w-1/2">
-                <div className="relative">
-                  <label
-                    htmlFor="email"
-                    className="leading-7 text-sm text-gray-600"
-                  >
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    className="w-full bg-gray-100 bg-opacity-50 rounded border border-gray-300 focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-200 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out"
-                  />
-                </div>
-              </div>
-              <div className="p-2 w-full">
-                <div className="relative">
-                  <label
-                    htmlFor="message"
-                    className="leading-7 text-sm text-gray-600"
-                  >
-                    Message
-                  </label>
-                  <textarea
-                    id="message"
-                    name="message"
-                    className="w-full bg-gray-100 bg-opacity-50 rounded border border-gray-300 focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-200 h-32 text-base outline-none text-gray-700 py-1 px-3 resize-none leading-6 transition-colors duration-200 ease-in-out"
-                  ></textarea>
-                </div>
-              </div>
-              <div className="p-2 w-full">
-                <button className="flex mx-auto text-white bg-orange-500 border-0 py-2 px-8 focus:outline-none hover:bg-orange-600 rounded text-lg">
-                  Send Message
-                </button>
-              </div>
-              <div className="p-2 w-full pt-8 mt-8 border-t border-gray-200 text-center">
-                <a className="text-orange-500">example@email.com</a>
-                <p className="leading-normal my-5">
-                  49 Smith St.
-                  <br />
-                  Saint Cloud, MN 56301
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <FeatureCard
+              icon={<FiFileText className="w-8 h-8" />}
+              title="Creación de Tickets"
+              description="Registra incidencias de forma rápida y organizada. Sistema intuitivo para reportar problemas técnicos."
+              color="orange"
+            />
+            <FeatureCard
+              icon={<FiClock className="w-8 h-8" />}
+              title="Seguimiento en Tiempo Real"
+              description="Monitorea el estado de tus incidencias en tiempo real. Dashboard completo con estadísticas actualizadas."
+              color="blue"
+            />
+            <FeatureCard
+              icon={<FiCheckCircle className="w-8 h-8" />}
+              title="Gestión de Estados"
+              description="Controla el ciclo de vida de las incidencias: Abierto, Pendiente, Cerrado. Flujo de trabajo optimizado."
+              color="green"
+            />
+            <FeatureCard
+              icon={<FiUsers className="w-8 h-8" />}
+              title="Asignación de Agentes"
+              description="Asigna incidencias a agentes especializados. Sistema de roles: Cliente, Agente y Administrador."
+              color="purple"
+            />
+            <FeatureCard
+              icon={<FiBarChart2 className="w-8 h-8" />}
+              title="Reportes y Estadísticas"
+              description="Analiza el rendimiento con métricas detalladas. Visualiza tendencias y tiempos de resolución."
+              color="yellow"
+            />
+            <FeatureCard
+              icon={<FiShield className="w-8 h-8" />}
+              title="Seguridad y Control"
+              description="Sistema seguro con autenticación robusta. Control de acceso basado en roles de usuario."
+              color="red"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-20 bg-gray-50">
+        <div className="containers">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              ¿Cómo Funciona?
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Proceso simple y eficiente para gestionar incidencias
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <StepCard
+              number="1"
+              title="Registra la Incidencia"
+              description="Crea un ticket describiendo el problema técnico. Selecciona categoría y prioridad."
+              icon={<FiFileText className="w-6 h-6" />}
+            />
+            <StepCard
+              number="2"
+              title="Asignación y Seguimiento"
+              description="El sistema asigna la incidencia al agente correspondiente. Puedes seguir el progreso en tiempo real."
+              icon={<FiClock className="w-6 h-6" />}
+            />
+            <StepCard
+              number="3"
+              title="Resolución y Cierre"
+              description="Una vez resuelta, la incidencia se cierra. Sistema de feedback para mejorar el servicio."
+              icon={<FiCheckCircle className="w-6 h-6" />}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Benefits Section */}
+      <section className="py-20 bg-white">
+        <div className="containers">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+                  ¿Por qué elegir Antares Panamericana?
+                </h2>
+                <p className="text-lg text-gray-600 mb-8">
+                  Sistema profesional de gestión de incidencias diseñado para equipos técnicos 
+                  que necesitan eficiencia y control total sobre sus tickets.
                 </p>
-                <span className="inline-flex">
-                  <a className="text-gray-500">
-                    <svg
-                      fill="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      className="w-5 h-5"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"></path>
-                    </svg>
-                  </a>
-                  <a className="ml-4 text-gray-500">
-                    <svg
-                      fill="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      className="w-5 h-5"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"></path>
-                    </svg>
-                  </a>
-                  <a className="ml-4 text-gray-500">
-                    <svg
-                      fill="none"
-                      stroke="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      className="w-5 h-5"
-                      viewBox="0 0 24 24"
-                    >
-                      <rect
-                        width="20"
-                        height="20"
-                        x="2"
-                        y="2"
-                        rx="5"
-                        ry="5"
-                      ></rect>
-                      <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01"></path>
-                    </svg>
-                  </a>
-                  <a className="ml-4 text-gray-500">
-                    <svg
-                      fill="currentColor"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      className="w-5 h-5"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path>
-                    </svg>
-                  </a>
-                </span>
+
+                <div className="space-y-4">
+                  {[
+                    "Sistema completo de gestión de incidencias en tiempo real",
+                    "Interfaz intuitiva y fácil de usar",
+                    "Asignación automática de tickets a agentes especializados",
+                    "Dashboard con métricas y estadísticas en tiempo real",
+                    "Sistema de mensajería integrado para comunicación fluida",
+                    "Categorización por áreas técnicas (Software, Hardware, Red, etc.)",
+                    "Control de prioridades (Alta, Media, Baja)",
+                    "Plataforma web moderna y responsive",
+                  ].map((benefit, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="flex-shrink-0 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center mt-0.5">
+                        <FiCheckCircle className="w-4 h-4 text-white" />
+                      </div>
+                      <p className="text-gray-700">{benefit}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8">
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 px-8 py-4 rounded-lg text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                  >
+                    Comenzar Ahora
+                    <FiArrowRight className="w-5 h-5" />
+                  </Link>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-8 lg:p-12">
+                <div className="space-y-6">
+                  <div className="bg-white rounded-lg p-6 shadow-md">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <FiZap className="w-6 h-6 text-orange-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">Rápido y Eficiente</h3>
+                        <p className="text-sm text-gray-600">Resolución de incidencias en tiempo récord</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-6 shadow-md">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <FiBarChart2 className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">Métricas en Tiempo Real</h3>
+                        <p className="text-sm text-gray-600">Seguimiento completo del rendimiento</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-6 shadow-md">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <FiShield className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">Seguro y Confiable</h3>
+                        <p className="text-sm text-gray-600">Protección de datos y control de acceso</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
-    </main>
+
+      {/* CTA Section */}
+      <section id="contacto" className="py-20 bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+        <div className="containers text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            ¿Listo para comenzar?
+          </h2>
+          <p className="text-xl text-orange-50 mb-8 max-w-2xl mx-auto">
+            Únete a nuestro sistema de gestión de incidencias y mejora la eficiencia de tu equipo técnico.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <Link
+              href="/register"
+              className="bg-white text-orange-600 px-8 py-4 rounded-lg font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+            >
+              Crear Cuenta Gratis
+            </Link>
+            <Link
+              href="/login"
+              className="bg-orange-800 text-white px-8 py-4 rounded-lg font-semibold text-lg border-2 border-white/30 hover:bg-orange-900 transition-all duration-300"
+            >
+              Iniciar Sesión
+            </Link>
+          </div>
+          
+          {/* Contact Info */}
+          <div className="border-t border-orange-400/30 pt-12 mt-12">
+            <h3 className="text-2xl font-semibold mb-6">Contacto</h3>
+            <div className="flex flex-col md:flex-row items-center justify-center gap-8 text-orange-50">
+              <div>
+                <p className="font-semibold mb-2">Email de Soporte</p>
+                <a 
+                  href="mailto:soporte@antarespanamericana.com" 
+                  className="text-white hover:text-orange-200 underline transition-colors"
+                >
+                  soporte@antarespanamericana.com
+                </a>
+              </div>
+              <div>
+                <p className="font-semibold mb-2">Sistema de Gestión</p>
+                <p className="text-orange-100">Antares Panamericana</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }
-
-const data = [
-  {
-    id: 1,
-    level: "Dashboard Report",
-    description:
-      "Our rich and simple dashboard keeps you up-to-date on your help desk statistics",
-    icon: <MdDashboard size={45} color="orange" />,
-  },
-  {
-    id: 2,
-    level: "Configurable Help Topic",
-    description:
-      "Add, edit, and delete your help desk topics that suit your preference",
-    icon: <FcDataConfiguration size={45} color="orange" />,
-  },
-  {
-    id: 3,
-    level: "Service Level Agreementss",
-    description:
-      "Simply set your business hours and our system will handle the rest leaving you worry-free",
-    icon: <GrServices size={45} color="orange" />,
-  },
-  {
-    id: 4,
-    level: "Ticket Filters",
-    description:
-      "Our powerful ticket filtering system makes sure the right tickets goes to the right department leaving you with a clutter-free environment",
-    icon: <BiSpreadsheet size={45} color="orange" />,
-  },
-  {
-    id: 5,
-    level: "Customer Support Portal",
-    description:
-      "Robust customer support portal system to help your business maintain happy customer relationships",
-    icon: <MdOutlineSupportAgent size={45} color="orange" />,
-  },
-  {
-    id: 6,
-    level: "And Much More!",
-    description:
-      "spTalk comes pack with tons of awesome features you have to try out yourself",
-    icon: <MdOutlineSupportAgent size={45} color="orange" />,
-  },
-];

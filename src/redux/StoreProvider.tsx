@@ -8,10 +8,6 @@ interface GlobalLayoutProps {
 }
 
 const StoreProvider: FC<GlobalLayoutProps> = ({ children }) => {
-  return (
-    <React.Fragment>
-      <Provider store={store}>{children}</Provider>
-    </React.Fragment>
-  );
+  return <Provider store={store}>{children}</Provider>;
 };
 export default StoreProvider;

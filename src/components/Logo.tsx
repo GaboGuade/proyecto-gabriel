@@ -1,14 +1,15 @@
+"use client";
+
 import { logo } from '@/assets';
 import Image from 'next/image';
-import React, { type FC } from 'react';
+import React from 'react';
 
 interface LogoProps {}
 
-const Logo: FC<LogoProps> = ({}) => {
+const Logo: React.FC<LogoProps> = () => {
   return (
-    <React.Fragment>
-      <Image width={150} src={logo} alt="logo" priority={true} />
-    </React.Fragment>
+    <Image width={150} height={50} src={logo} alt="Antares Panamericana Logo" priority={true} />
   );
 };
+
 export default Logo;

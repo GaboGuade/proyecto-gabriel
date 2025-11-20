@@ -1,95 +1,336 @@
 "use client";
 
-import { useUserRollCategoryUpdateMutation } from "@/redux/features/user/userApi";
-import { Dispatch, SetStateAction, useState } from "react";
+import { Dispatch, SetStateAction, useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { toast } from "react-toastify";
+import { getAllCategories } from "@/services/categories";
 
 type Props = {
   selectedUser: string;
   setIsOpen: Dispatch<SetStateAction<boolean>>;
-  data: {
-    categoryID: string;
-    type: string;
-  }[];
+  data: any[];
+  onSuccess?: () => void;
 };
+
+const DEPARTMENTS = [
+  { value: "ventas", label: "Ventas" },
+  { value: "soporte", label: "Soporte Técnico" },
+  { value: "marketing", label: "Marketing" },
+  { value: "recursos_humanos", label: "Recursos Humanos" },
+  { value: "finanzas", label: "Finanzas" },
+  { value: "operaciones", label: "Operaciones" },
+  { value: "it", label: "Tecnología (IT)" },
+  { value: "administracion", label: "Administración" },
+];
 
 export default function ChangeCustomerRoll({
   data,
   selectedUser,
   setIsOpen,
+  onSuccess,
 }: Props) {
-  const [selectedRoll, setSelectedRoll] = useState<string>("assistant");
+  const [selectedRoll, setSelectedRoll] = useState<string>("customer");
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const [userRollCategoryUpdate, { data: updateUser, error, isLoading }] =
-    useUserRollCategoryUpdateMutation();
+  useEffect(() => {
+    loadCategories();
+    if (selectedUser) {
+      loadCurrentUser();
+    }
+  }, [selectedUser]);
 
-  const handleAssistantSubmit = async (e: { preventDefault: () => void }) => {
+  async function loadCurrentUser() {
+    // Validar que selectedUser tenga un valor válido
+    if (!selectedUser || selectedUser.trim() === "") {
+      console.warn("⚠️ selectedUser está vacío, no se puede cargar el usuario");
+      return;
+    }
+
+    try {
+      console.log("📥 Cargando usuario con ID:", selectedUser);
+      
+      const { data: userData, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", selectedUser)
+        .single();
+      
+      if (error) {
+        console.error("❌ Error en consulta:", error);
+        throw error;
+      }
+      
+      if (userData) {
+        console.log("✅ Usuario cargado:", userData);
+        setCurrentUser(userData);
+        setSelectedRoll(userData.role || "customer");
+        setSelectedDepartment(userData.department || "");
+      } else {
+        console.warn("⚠️ No se encontró el usuario con ID:", selectedUser);
+      }
+    } catch (error: any) {
+      console.error("❌ Error loading user:", error);
+      toast.error("Error al cargar información del usuario: " + (error.message || "Error desconocido"));
+    }
+  }
+
+  async function loadCategories() {
+    try {
+      const cats = await getAllCategories();
+      setCategories(cats);
+    } catch (error: any) {
+      toast.error("Error al cargar categorías: " + error.message);
+    } finally {
+      setLoadingCategories(false);
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const obj = {
-      id: selectedUser,
-      roll: selectedRoll,
-      assign_to: selectedCategory,
-    };
-
-    if (obj.assign_to === "" || obj.roll === "") {
-      window.alert("Select Roll and Category");
+    if (selectedRoll === "assistance" && !selectedCategory) {
+      toast.error("Por favor selecciona una categoría para el asistente");
+      return;
     }
-    await userRollCategoryUpdate(obj);
 
-    setIsOpen(false);
+    if (selectedRoll === "empleado" && !selectedDepartment) {
+      toast.error("Por favor selecciona un departamento para el empleado");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Preparar datos de actualización
+      const updateData: any = {
+        role: selectedRoll,
+      };
+
+      // SIEMPRE actualizar department según el rol
+      if (selectedRoll === "empleado") {
+        // Si es empleado, SIEMPRE usar el departamento seleccionado
+        // Asegurarse de que selectedDepartment tenga un valor válido
+        if (selectedDepartment && selectedDepartment.trim() !== "") {
+          updateData.department = selectedDepartment;
+        } else {
+          // Si no hay departamento seleccionado, mantener el actual o poner null
+          updateData.department = currentUser?.department || null;
+        }
+      } else {
+        // Si no es empleado, limpiar department explícitamente
+        updateData.department = null;
+      }
+
+      console.log("📝 Datos a actualizar:", {
+        userId: selectedUser,
+        role: selectedRoll,
+        selectedDepartment: selectedDepartment,
+        departmentEnUpdate: updateData.department,
+        currentUserDepartment: currentUser?.department,
+        updateData
+      });
+
+      // Primera actualización: rol y departamento juntos
+      const { error, data } = await supabase
+        .from("profiles")
+        .update(updateData)
+        .eq("id", selectedUser)
+        .select();
+
+      if (error) {
+        console.error("❌ Error en primera actualización:", error);
+        throw error;
+      }
+
+      console.log("✅ Primera actualización exitosa:", data);
+
+      // Verificar que se actualizó correctamente
+      const updatedProfile = data?.[0];
+      if (!updatedProfile) {
+        throw new Error("No se recibió el perfil actualizado");
+      }
+
+      // Verificar que el departamento se actualizó correctamente
+      if (selectedRoll === "empleado" && selectedDepartment) {
+        if (updatedProfile.department !== selectedDepartment) {
+          console.warn("⚠️ El departamento no coincide. Esperado:", selectedDepartment, "Obtenido:", updatedProfile.department);
+          console.log("🔄 Intentando actualizar solo el departamento...");
+          
+          // Intentar actualizar solo el departamento con un enfoque más directo
+          const { error: deptError, data: deptData } = await supabase
+            .from("profiles")
+            .update({ department: selectedDepartment })
+            .eq("id", selectedUser)
+            .select();
+          
+          if (deptError) {
+            console.error("❌ Error actualizando solo el departamento:", deptError);
+            console.error("Detalles del error:", JSON.stringify(deptError, null, 2));
+            toast.error("Error al actualizar el departamento: " + deptError.message);
+            throw deptError;
+          } else {
+            console.log("✅ Departamento actualizado en segunda actualización:", deptData);
+            // Verificar nuevamente
+            const finalProfile = deptData?.[0];
+            if (finalProfile && finalProfile.department === selectedDepartment) {
+              console.log("✅✅ Departamento confirmado:", finalProfile.department);
+            } else {
+              console.warn("⚠️⚠️ El departamento aún no coincide después de la segunda actualización");
+            }
+          }
+        } else {
+          console.log("✅ Departamento actualizado correctamente en primera actualización:", updatedProfile.department);
+        }
+      }
+
+      // Recargar el usuario actualizado para verificar
+      await loadCurrentUser();
+      
+      // Verificar una vez más después de recargar
+      const { data: verifyData } = await supabase
+        .from("profiles")
+        .select("role, department")
+        .eq("id", selectedUser)
+        .single();
+      
+      if (verifyData) {
+        console.log("🔍 Verificación final - Rol:", verifyData.role, "Departamento:", verifyData.department);
+        if (selectedRoll === "empleado" && selectedDepartment && verifyData.department !== selectedDepartment) {
+          console.error("❌❌ ERROR CRÍTICO: El departamento NO se guardó. Valor esperado:", selectedDepartment, "Valor en BD:", verifyData.department);
+          toast.error("El departamento no se guardó correctamente. Por favor, intenta de nuevo o verifica los permisos en Supabase.");
+        }
+      }
+
+      toast.success("Rol y departamento actualizados exitosamente");
+      setIsOpen(false);
+      if (onSuccess) onSuccess();
+    } catch (error: any) {
+      console.error("❌ Error completo al actualizar:", error);
+      toast.error("Error al actualizar: " + (error.message || "Error desconocido"));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <>
-      <div className="w-1/2 mx-auto bg-white p-6 rounded shadow">
-        <h1 className="pb-2 font-semibold text-lg">
-          Change Roll & Assign Category
-        </h1>
+    <div className="w-full max-w-md mx-auto bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+      <h1 className="pb-4 font-semibold text-xl text-gray-800 dark:text-white">
+        Cambiar Rol de Usuario
+      </h1>
 
-        <form action="">
-          <label htmlFor="roll" className="text-base  font-medium">
-            User Roll
-          </label>
-          <input
-            disabled
-            className=" bg-gray-200 capitalize w-full rounded outline-none py-2 px-2 border"
-            type="text"
-            readOnly
-            value={"Assistant"}
-          />
+      {currentUser && (
+        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="font-medium">Usuario:</span> {currentUser.full_name || currentUser.email || "Sin nombre"}
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="font-medium">Rol actual:</span> <span className="capitalize">{currentUser.role || "customer"}</span>
+          </p>
+          {currentUser.department && (
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              <span className="font-medium">Departamento:</span> <span className="capitalize">{currentUser.department.replace('_', ' ')}</span>
+            </p>
+          )}
+        </div>
+      )}
 
-          {/* Assistant Assign Type */}
-          <label htmlFor="roll" className="text-base  font-medium">
-            Select Assistant Category
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="roll" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Rol del Usuario *
           </label>
           <select
-            name="roll"
             id="roll"
-            className=" capitalize w-full rounded outline-none py-2 px-2 border"
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            value={selectedRoll}
+            onChange={(e) => {
+              setSelectedRoll(e.target.value);
+              // Limpiar department si no es empleado
+              if (e.target.value !== "empleado") {
+                setSelectedDepartment("");
+              }
+            }}
+            className="w-full rounded-md border border-gray-300 dark:border-gray-600 py-2 px-3 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent capitalize bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            required
           >
-            {data?.map((each) => (
-              <option
-                className="capitalize"
-                key={each.categoryID}
-                value={each.categoryID}
-              >
-                {each.type}
-              </option>
-            ))}
+            <option value="customer">Cliente</option>
+            <option value="empleado">Empleado</option>
+            <option value="assistance">Asistente</option>
+            <option value="admin">Administrador</option>
           </select>
-          {/* <p className="text-red-500 mt-2 text-base">{errors}</p> */}
+        </div>
 
+        {selectedRoll === "empleado" && (
+          <div>
+            <label htmlFor="department" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Departamento *
+            </label>
+            <select
+              id="department"
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 py-2 px-3 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              required
+            >
+              <option value="">Selecciona un departamento</option>
+              {DEPARTMENTS.map((dept) => (
+                <option key={dept.value} value={dept.value}>
+                  {dept.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Asigna el departamento al que pertenece el empleado
+            </p>
+          </div>
+        )}
+
+        {selectedRoll === "assistance" && (
+          <div>
+            <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Categoría Asignada *
+            </label>
+            <select
+              id="category"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 py-2 px-3 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              disabled={loadingCategories}
+              required
+            >
+              <option value="">Selecciona una categoría</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name || cat.type}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Asigna una categoría específica al asistente
+            </p>
+          </div>
+        )}
+
+        <div className="flex gap-3 pt-2">
           <button
-            onClick={handleAssistantSubmit}
             type="submit"
-            className="w-full bg-orange-500 py-2 mt-4 rounded text-white font-medium text-base"
+            disabled={loading}
+            className="flex-1 bg-orange-500 dark:bg-orange-600 py-2 rounded-md text-white font-semibold hover:bg-orange-600 dark:hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Create Assistant
+            {loading ? "Actualizando..." : "Actualizar Rol"}
           </button>
-        </form>
-      </div>
-    </>
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }
