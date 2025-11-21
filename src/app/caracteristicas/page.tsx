@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 import { 
   FiFileText, 
   FiClock, 
@@ -21,6 +23,8 @@ import {
 } from "react-icons/fi";
 
 export default function CaracteristicasPage() {
+  const user = useSelector((state: RootState) => state.auth);
+  const isAuthenticated = !!user.accessToken;
   const features = [
     {
       icon: <FiFileText className="w-8 h-8" />,
@@ -227,13 +231,24 @@ export default function CaracteristicasPage() {
               Únete a nuestro sistema y comienza a gestionar tus tickets de manera profesional
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/login"
-                className="bg-white text-orange-600 px-8 py-4 rounded-lg font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
-              >
-                Iniciar Sesión
-                <FiArrowRight className="w-5 h-5" />
-              </Link>
+              {!isAuthenticated && (
+                <Link
+                  href="/login"
+                  className="bg-white text-orange-600 px-8 py-4 rounded-lg font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  Iniciar Sesión
+                  <FiArrowRight className="w-5 h-5" />
+                </Link>
+              )}
+              {isAuthenticated && (
+                <Link
+                  href="/support-center"
+                  className="bg-white text-orange-600 px-8 py-4 rounded-lg font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  Ir al Dashboard
+                  <FiArrowRight className="w-5 h-5" />
+                </Link>
+              )}
               <Link
                 href="/#contacto"
                 className="bg-white/10 backdrop-blur-sm text-white border-2 border-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-2"

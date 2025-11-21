@@ -1,6 +1,9 @@
 import { supabase } from "../lib/supabaseClient";
+import { getSiteUrl } from "../lib/supabaseClient";
 
 export async function signUp({ email, password, fullName }: any) {
+  const redirectUrl = `${getSiteUrl()}/login`;
+  
   const { data: authData, error } = await supabase.auth.signUp({
     email,
     password,
@@ -8,6 +11,7 @@ export async function signUp({ email, password, fullName }: any) {
       data: {
         full_name: fullName,
       },
+      emailRedirectTo: redirectUrl,
     },
   });
 
@@ -98,9 +102,14 @@ export async function getUserProfile(userId?: string) {
 }
 
 export async function resendVerificationEmail(email: string) {
+  const redirectUrl = `${getSiteUrl()}/login`;
+  
   const { error } = await supabase.auth.resend({
     type: 'signup',
     email: email,
+    options: {
+      emailRedirectTo: redirectUrl,
+    },
   });
   if (error) throw error;
   return true;

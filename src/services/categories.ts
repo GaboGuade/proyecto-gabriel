@@ -2,14 +2,29 @@
 import { supabase } from "../lib/supabaseClient";
 
 // Obtener todas las categorías
-export async function getAllCategories() {
-  const { data, error } = await supabase
+export async function getAllCategories(categoryFor?: 'ticket' | 'user') {
+  let query = supabase
     .from("categories")
-    .select("*")
-    .order("name", { ascending: true });
+    .select("*");
+  
+  if (categoryFor) {
+    query = query.eq("category_for", categoryFor);
+  }
+  
+  const { data, error } = await query.order("name", { ascending: true });
 
   if (error) throw error;
   return data || [];
+}
+
+// Obtener categorías de tickets
+export async function getTicketCategories() {
+  return getAllCategories('ticket');
+}
+
+// Obtener categorías de usuarios
+export async function getUserCategories() {
+  return getAllCategories('user');
 }
 
 // Obtener una categoría por ID
@@ -25,10 +40,11 @@ export async function getCategory(categoryId: number) {
 }
 
 // Crear categoría (solo admin)
-export async function createCategory({ name, type, description }: {
+export async function createCategory({ name, type, description, category_for = 'ticket' }: {
   name: string,
   type?: string,
-  description?: string
+  description?: string,
+  category_for?: 'ticket' | 'user'
 }) {
   // Si no se proporciona type, generar uno automáticamente basado en el nombre
   const categoryType = type || name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -36,6 +52,7 @@ export async function createCategory({ name, type, description }: {
   const insertData: any = {
     name,
     description: description || null,
+    category_for: category_for || 'ticket',
   };
   
   // Solo agregar type si la columna existe (manejo de errores)
@@ -60,6 +77,7 @@ export async function createCategory({ name, type, description }: {
         .insert({
           name,
           description: description || null,
+          category_for: category_for || 'ticket',
         })
         .select()
         .single();

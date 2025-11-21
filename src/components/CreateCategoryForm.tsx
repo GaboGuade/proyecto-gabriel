@@ -15,6 +15,7 @@ export default function CreateCategoryForm({ onSuccess }: Props) {
   const [name, setName] = useState<string>("");
   const [type, setType] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  const [categoryFor, setCategoryFor] = useState<'ticket' | 'user'>('ticket');
   const [loading, setLoading] = useState(false);
 
   const handleCreateCategory = async (e: React.FormEvent) => {
@@ -31,12 +32,14 @@ export default function CreateCategoryForm({ onSuccess }: Props) {
         name: name.trim(),
         type: type.trim() ? type.trim().toLowerCase() : undefined,
         description: description.trim() || undefined,
+        category_for: categoryFor,
       });
       
       toast.success(`Categoría "${name}" creada exitosamente`);
       setName("");
       setType("");
       setDescription("");
+      setCategoryFor('ticket');
       dispatch(openCategoryForm(false));
       onSuccess();
     } catch (error: any) {
@@ -78,6 +81,27 @@ export default function CreateCategoryForm({ onSuccess }: Props) {
             placeholder="Ej: technical, billing, account"
           />
           <p className="text-xs text-gray-500 mt-1">Se generará automáticamente si no lo ingresas</p>
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="categoryFor" className="block text-sm font-medium text-gray-700 mb-1">
+            Tipo de Categoría *
+          </label>
+          <select
+            id="categoryFor"
+            value={categoryFor}
+            onChange={(e) => setCategoryFor(e.target.value as 'ticket' | 'user')}
+            className="border w-full py-2 mt-1 rounded-md px-3 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+            required
+          >
+            <option value="ticket">Para Tickets</option>
+            <option value="user">Para Usuarios (Asistentes)</option>
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            {categoryFor === 'ticket' 
+              ? "Esta categoría se usará para clasificar tickets" 
+              : "Esta categoría se asignará a asistentes"}
+          </p>
         </div>
 
         <div className="mb-4">

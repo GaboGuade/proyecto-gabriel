@@ -93,6 +93,41 @@ export async function uploadAttachment(
 
 // Obtener adjuntos de un ticket
 export async function getTicketAttachments(ticketId: number): Promise<Attachment[]> {
+  // Verificar que el usuario tiene acceso al ticket primero
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) {
+    throw new Error("Usuario no autenticado");
+  }
+
+  // Verificar acceso al ticket
+  const { data: ticket, error: ticketError } = await supabase
+    .from("tickets")
+    .select("id, user_id, assigned_to")
+    .eq("id", ticketId)
+    .single();
+
+  if (ticketError || !ticket) {
+    throw new Error("Ticket no encontrado o sin acceso");
+  }
+
+  // Verificar si el usuario tiene acceso
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", session.user.id)
+    .single();
+
+  const isAdmin = profile?.role === "admin" || profile?.role === "assistance";
+  const hasAccess = 
+    ticket.user_id === session.user.id || 
+    ticket.assigned_to === session.user.id || 
+    isAdmin;
+
+  if (!hasAccess) {
+    throw new Error("No tienes acceso a este ticket");
+  }
+
+  // Obtener adjuntos
   const { data, error } = await supabase
     .from("attachments")
     .select("*")
@@ -117,12 +152,56 @@ export async function getMessageAttachments(messageId: number): Promise<Attachme
 
 // Obtener URL de descarga del archivo
 export async function getAttachmentUrl(attachment: Attachment): Promise<string> {
-  const { data } = await supabase.storage
-    .from(BUCKET_NAME)
-    .createSignedUrl(attachment.file_path, 3600); // URL válida por 1 hora
+  try {
+    // Obtener sesión para usar signed URLs si es necesario
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // Para Edge y otros navegadores, usar siempre signed URL si hay sesión
+    // Es más confiable que las URLs públicas
+    if (session?.user) {
+      try {
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from(BUCKET_NAME)
+          .createSignedUrl(attachment.file_path, 3600); // URL válida por 1 hora
 
-  if (!data) throw new Error("No se pudo generar la URL del archivo");
-  return data.signedUrl;
+        if (!signedError && signedData?.signedUrl) {
+          return signedData.signedUrl;
+        }
+        
+        // Si signed URL falla, intentar con URL pública
+        console.log("Signed URL falló, intentando URL pública:", signedError);
+      } catch (signedErr) {
+        console.log("Error con signed URL:", signedErr);
+      }
+    }
+    
+    // Obtener URL pública como fallback (compatible con todos los navegadores)
+    const { data: publicData } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(attachment.file_path);
+    
+    if (publicData?.publicUrl) {
+      return publicData.publicUrl;
+    }
+    
+    // Si todo falla, intentar signed URL de todas formas (sin sesión)
+    try {
+      const { data: signedData, error: signedError } = await supabase.storage
+        .from(BUCKET_NAME)
+        .createSignedUrl(attachment.file_path, 3600);
+
+      if (!signedError && signedData?.signedUrl) {
+        return signedData.signedUrl;
+      }
+    } catch (finalErr) {
+      console.error("Error final al obtener URL:", finalErr);
+    }
+
+    throw new Error(`No se pudo generar la URL del archivo`);
+  } catch (error: any) {
+    console.error("Error completo en getAttachmentUrl:", error);
+    throw new Error(`No se pudo generar la URL del archivo: ${error.message || "Error desconocido"}`);
+  }
 }
 
 // Eliminar adjunto

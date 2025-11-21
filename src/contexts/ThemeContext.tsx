@@ -18,13 +18,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
     // Obtener tema del localStorage o preferencia del sistema
+    // El script inline ya aplicó el tema, solo necesitamos sincronizar el estado
     const savedTheme = localStorage.getItem("theme") as Theme;
     const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
     const initialTheme = savedTheme || systemTheme;
-    setTheme(initialTheme);
-    applyTheme(initialTheme);
+    
+    // Verificar si el tema ya está aplicado en el DOM
+    const isDark = document.documentElement.classList.contains("dark");
+    const currentTheme = isDark ? "dark" : "light";
+    
+    // Sincronizar estado con el DOM
+    setTheme(currentTheme);
+    
+    // Si hay una discrepancia, aplicar el tema correcto
+    if (currentTheme !== initialTheme && savedTheme) {
+      applyTheme(savedTheme);
+      setTheme(savedTheme);
+    } else if (!savedTheme && currentTheme !== systemTheme) {
+      applyTheme(systemTheme);
+      setTheme(systemTheme);
+    }
   }, []);
 
   const applyTheme = (newTheme: Theme) => {

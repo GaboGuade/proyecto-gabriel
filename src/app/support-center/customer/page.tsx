@@ -152,6 +152,7 @@ export default function Customer({}: Props) {
             email: email,
             role: user.role || "customer",  // Rol por defecto si no tiene
             department: user.department || null,
+            assigned_category_id: user.assigned_category_id || null,
             created_at: user.created_at || new Date().toISOString(),
             updated_at: user.updated_at || null,
           };

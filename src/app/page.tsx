@@ -1,6 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { 
   FiFileText, 
   FiClock, 
@@ -72,6 +76,34 @@ function StepCard({
 }
 
 export default function Home() {
+  const user = useSelector((state: RootState) => state.auth);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setIsAuthenticated(!!session?.user);
+      } catch (error) {
+        console.error("Error checking auth:", error);
+        setIsAuthenticated(false);
+      } finally {
+        setChecking(false);
+      }
+    }
+    checkAuth();
+    
+    // Escuchar cambios en la sesión
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session?.user);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -92,19 +124,32 @@ export default function Home() {
               Plataforma profesional para el control y seguimiento de tickets técnicos.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/login"
-                className="bg-white text-orange-600 px-8 py-4 rounded-lg font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
-              >
-                Iniciar Sesión
-                <FiArrowRight className="w-5 h-5" />
-              </Link>
-              <Link
-                href="/register"
-                className="bg-orange-800 text-white px-8 py-4 rounded-lg font-semibold text-lg border-2 border-white/30 hover:bg-orange-900 transition-all duration-300 flex items-center justify-center gap-2"
-              >
-                Crear Cuenta
-              </Link>
+              {!isAuthenticated && (
+                <>
+                  <Link
+                    href="/login"
+                    className="bg-white text-orange-600 px-8 py-4 rounded-lg font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                  >
+                    Iniciar Sesión
+                    <FiArrowRight className="w-5 h-5" />
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="bg-orange-800 text-white px-8 py-4 rounded-lg font-semibold text-lg border-2 border-white/30 hover:bg-orange-900 transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    Crear Cuenta
+                  </Link>
+                </>
+              )}
+              {isAuthenticated && (
+                <Link
+                  href="/support-center"
+                  className="bg-white text-orange-600 px-8 py-4 rounded-lg font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  Ir al Dashboard
+                  <FiArrowRight className="w-5 h-5" />
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -233,13 +278,23 @@ export default function Home() {
                 </div>
 
                 <div className="mt-8">
-                  <Link
-                    href="/login"
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 px-8 py-4 rounded-lg text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    Comenzar Ahora
-                    <FiArrowRight className="w-5 h-5" />
-                  </Link>
+                  {!isAuthenticated ? (
+                    <Link
+                      href="/login"
+                      className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 px-8 py-4 rounded-lg text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      Comenzar Ahora
+                      <FiArrowRight className="w-5 h-5" />
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/support-center"
+                      className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 px-8 py-4 rounded-lg text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                      Ir al Dashboard
+                      <FiArrowRight className="w-5 h-5" />
+                    </Link>
+                  )}
                 </div>
               </div>
               <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-8 lg:p-12">
@@ -294,18 +349,30 @@ export default function Home() {
             Únete a nuestro sistema de gestión de incidencias y mejora la eficiencia de tu equipo técnico.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Link
-              href="/register"
-              className="bg-white text-orange-600 px-8 py-4 rounded-lg font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
-            >
-              Crear Cuenta Gratis
-            </Link>
-            <Link
-              href="/login"
-              className="bg-orange-800 text-white px-8 py-4 rounded-lg font-semibold text-lg border-2 border-white/30 hover:bg-orange-900 transition-all duration-300"
-            >
-              Iniciar Sesión
-            </Link>
+            {!isAuthenticated && (
+              <>
+                <Link
+                  href="/register"
+                  className="bg-white text-orange-600 px-8 py-4 rounded-lg font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                >
+                  Crear Cuenta Gratis
+                </Link>
+                <Link
+                  href="/login"
+                  className="bg-orange-800 text-white px-8 py-4 rounded-lg font-semibold text-lg border-2 border-white/30 hover:bg-orange-900 transition-all duration-300"
+                >
+                  Iniciar Sesión
+                </Link>
+              </>
+            )}
+            {isAuthenticated && (
+              <Link
+                href="/support-center"
+                className="bg-white text-orange-600 px-8 py-4 rounded-lg font-semibold text-lg shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+              >
+                Ir al Dashboard
+              </Link>
+            )}
           </div>
           
           {/* Contact Info */}

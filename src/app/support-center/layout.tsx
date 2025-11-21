@@ -21,13 +21,35 @@ export default function DashboardLayout({ children }: Props) {
   const [userProfile, setUserProfile] = useState<any>(null);
 
   useEffect(() => {
+    let mounted = true;
+    
     async function checkAuth() {
       try {
-        const session = await getUserSession();
+        // Intentar obtener sesión con reintentos
+        let session = null;
+        let attempts = 0;
+        const MAX_RETRIES = 3;
+        
+        while (attempts < MAX_RETRIES && !session && mounted) {
+          try {
+            session = await getUserSession();
+            if (session?.user) {
+              break;
+            }
+          } catch (err) {
+            attempts++;
+            if (attempts < MAX_RETRIES && mounted) {
+              await new Promise(resolve => setTimeout(resolve, 100 * attempts));
+            }
+          }
+        }
+
+        if (!mounted) return;
+
         if (!session || !session.user) {
-          // Solo redirigir si realmente no hay sesión
-          console.log("No hay sesión activa, redirigiendo al login");
-          route.push("/login");
+          // No redirigir aquí, dejar que ProtectedRoute lo maneje
+          // Solo marcar como no cargando
+          setLoading(false);
           return;
         }
 
@@ -39,7 +61,7 @@ export default function DashboardLayout({ children }: Props) {
             .eq("id", session.user.id)
             .single();
           
-          if (!profileError && profile) {
+          if (!profileError && profile && mounted) {
             setUserProfile(profile);
           }
         } catch (profileErr) {
@@ -47,14 +69,23 @@ export default function DashboardLayout({ children }: Props) {
           // Continuar aunque falle obtener el perfil
         }
 
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       } catch (error) {
         console.error("Error verificando autenticación:", error);
         // No redirigir automáticamente, dejar que ProtectedRoute maneje esto
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     }
+    
     checkAuth();
+    
+    return () => {
+      mounted = false;
+    };
   }, [route]);
 
   if (loading) {
@@ -63,11 +94,11 @@ export default function DashboardLayout({ children }: Props) {
 
   return (
     <ProtectedRoute>
-      <section className="w-full min-h-screen pt-20 sm:pt-24 bg-white dark:bg-gray-900 transition-colors duration-300">
+      <section className="w-full min-h-screen pt-16 sm:pt-20 md:pt-24 bg-white dark:bg-gray-900 transition-colors duration-300">
         <div className="containers grid grid-cols-12 gap-4 sm:gap-6">
           <aside className="col-span-12 md:col-span-3 md:sticky md:top-20 md:self-start md:max-h-[calc(100vh-5rem)] md:overflow-y-auto">
             <Sidebar />
-            <div className="ml-5 py-2 font-semibold text-gray-900 dark:text-gray-100">
+            <div className="ml-0 md:ml-5 py-2 px-2 md:px-0 font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base">
               <p>
                 Account Role:
                 <span className="capitalize text-orange-500 dark:text-orange-400 ml-1">
@@ -75,13 +106,13 @@ export default function DashboardLayout({ children }: Props) {
                 </span>
               </p>
               {userProfile && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 break-words">
                   {userProfile.full_name || user.user?.name}
                 </p>
               )}
             </div>
           </aside>
-          <main className="col-span-12 md:col-span-9 pb-12 w-full max-w-full overflow-x-hidden">
+          <main className="col-span-12 md:col-span-9 pb-8 sm:pb-12 w-full max-w-full overflow-x-hidden">
             <div className="w-full">
               {children}
             </div>

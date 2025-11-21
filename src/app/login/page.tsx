@@ -211,9 +211,15 @@ export default function LoginPage() {
 
     setResendingEmail(true);
     try {
+      const { getSiteUrl } = await import("@/lib/supabaseClient");
+      const redirectUrl = `${getSiteUrl()}/login`;
+      
       const { error: resendError } = await supabase.auth.resend({
         type: 'signup',
         email: email,
+        options: {
+          emailRedirectTo: redirectUrl,
+        },
       });
 
       if (resendError) throw resendError;
@@ -228,47 +234,50 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-orange-50"
+      className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"
     >
-      <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border border-gray-100">
+      <div className="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md mx-4 border border-gray-100 dark:border-gray-700">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
             Antares Panamericana
           </h1>
-          <p className="text-sm text-gray-600">Sistema de Gestión de Tickets</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300">Sistema de Gestión de Tickets</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Correo electrónico
             </label>
             <input
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400"
               type="email"
               placeholder="tu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
+              inputMode="email"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Contraseña
             </label>
             <input
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400"
               type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
             />
           </div>
 
           <button
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-md transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px] text-base"
             disabled={loading}
             type="submit"
           >
@@ -277,19 +286,19 @@ export default function LoginPage() {
         </form>
 
         {error && (
-          <div className="mt-4 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded">
+          <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 dark:border-red-600 text-red-700 dark:text-red-300 rounded">
             <p className="font-semibold mb-1">Error al iniciar sesión</p>
             <p className="text-sm">{error}</p>
             {error.includes("verifica tu email") && (
               <div className="mt-3 space-y-2">
-                <p className="text-xs text-red-600">
+                <p className="text-xs text-red-600 dark:text-red-400">
                   💡 Tip: Revisa tu carpeta de spam si no encuentras el correo de verificación.
                 </p>
                 <button
                   type="button"
                   onClick={handleResendVerification}
                   disabled={resendingEmail}
-                  className="text-xs text-orange-600 hover:text-orange-700 underline disabled:opacity-50"
+                  className="text-xs text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 underline disabled:opacity-50"
                 >
                   {resendingEmail ? "Reenviando..." : "¿No recibiste el correo? Reenviar verificación"}
                 </button>
@@ -298,9 +307,9 @@ export default function LoginPage() {
           </div>
         )}
 
-        <p className="mt-6 text-center text-sm text-gray-600">
+        <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-300">
           ¿No tienes cuenta?{" "}
-          <Link href="/register" className="text-orange-500 hover:text-orange-600 font-semibold">
+          <Link href="/register" className="text-orange-500 dark:text-orange-400 hover:text-orange-600 dark:hover:text-orange-300 font-semibold">
             Regístrate aquí
           </Link>
         </p>

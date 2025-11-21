@@ -1,10 +1,15 @@
 "use client";
 
 import React from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 interface FooterProps {}
 
 const Footer: React.FC<FooterProps> = () => {
+  const user = useSelector((state: RootState) => state.auth);
+  const isAuthenticated = !!user.accessToken;
+
   return (
     <>
       <div className="bg-gradient-to-r from-gray-900 to-gray-800">
@@ -21,8 +26,12 @@ const Footer: React.FC<FooterProps> = () => {
               <h4 className="text-white text-lg font-semibold mb-4">Enlaces Rápidos</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li><a href="/" className="hover:text-orange-500 transition-colors">Inicio</a></li>
-                <li><a href="/login" className="hover:text-orange-500 transition-colors">Iniciar Sesión</a></li>
-                <li><a href="/register" className="hover:text-orange-500 transition-colors">Registrarse</a></li>
+                {!isAuthenticated && (
+                  <>
+                    <li><a href="/login" className="hover:text-orange-500 transition-colors">Iniciar Sesión</a></li>
+                    <li><a href="/register" className="hover:text-orange-500 transition-colors">Registrarse</a></li>
+                  </>
+                )}
                 <li><a href="/support-center" className="hover:text-orange-500 transition-colors">Dashboard</a></li>
               </ul>
             </div>

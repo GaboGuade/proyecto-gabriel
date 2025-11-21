@@ -36,6 +36,10 @@ export default function ChangeCustomerRoll({
   const [loading, setLoading] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryDescription, setNewCategoryDescription] = useState("");
+  const [creatingCategory, setCreatingCategory] = useState(false);
 
   useEffect(() => {
     loadCategories();
@@ -70,6 +74,7 @@ export default function ChangeCustomerRoll({
         setCurrentUser(userData);
         setSelectedRoll(userData.role || "customer");
         setSelectedDepartment(userData.department || "");
+        setSelectedCategory(userData.assigned_category_id ? userData.assigned_category_id.toString() : "");
       } else {
         console.warn("⚠️ No se encontró el usuario con ID:", selectedUser);
       }
@@ -81,12 +86,62 @@ export default function ChangeCustomerRoll({
 
   async function loadCategories() {
     try {
-      const cats = await getAllCategories();
+      // Solo cargar categorías de tipo 'user' para asistentes
+      const { getUserCategories } = await import("@/services/categories");
+      const cats = await getUserCategories();
       setCategories(cats);
     } catch (error: any) {
       toast.error("Error al cargar categorías: " + error.message);
     } finally {
       setLoadingCategories(false);
+    }
+  }
+
+  async function handleCreateCategory(e: React.FormEvent) {
+    e.preventDefault();
+    
+    if (!newCategoryName.trim()) {
+      toast.error("Por favor ingresa el nombre de la categoría");
+      return;
+    }
+
+    setCreatingCategory(true);
+    try {
+      // Verificar sesión antes de crear
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast.error("Tu sesión ha expirado. Por favor, recarga la página.");
+        return;
+      }
+
+      const { createCategory } = await import("@/services/categories");
+      const created = await createCategory({
+        name: newCategoryName.trim(),
+        description: newCategoryDescription.trim() || undefined,
+        category_for: 'user', // Categoría para usuarios/asistentes
+      });
+      
+      toast.success(`Categoría "${created.name}" creada exitosamente`);
+      setNewCategoryName("");
+      setNewCategoryDescription("");
+      setShowCreateCategory(false);
+      
+      // Recargar categorías y seleccionar la recién creada
+      await loadCategories();
+      setSelectedCategory(created.id.toString());
+    } catch (error: any) {
+      console.error("Error al crear categoría:", error);
+      
+      // Manejar errores específicos sin cerrar sesión
+      if (error.message?.includes("RLS") || error.message?.includes("policy") || error.message?.includes("permission")) {
+        toast.error("No tienes permisos para crear categorías. Solo administradores pueden crear categorías.");
+      } else if (error.message?.includes("no autenticado") || error.message?.includes("sesión")) {
+        toast.error("Tu sesión ha expirado. Por favor, recarga la página.");
+      } else {
+        toast.error("Error al crear categoría: " + (error.message || "Error desconocido"));
+      }
+    } finally {
+      setCreatingCategory(false);
     }
   }
 
@@ -120,9 +175,24 @@ export default function ChangeCustomerRoll({
           // Si no hay departamento seleccionado, mantener el actual o poner null
           updateData.department = currentUser?.department || null;
         }
+        // Limpiar categoría asignada si es empleado
+        updateData.assigned_category_id = null;
       } else {
         // Si no es empleado, limpiar department explícitamente
         updateData.department = null;
+      }
+
+      // Actualizar categoría asignada para asistentes
+      if (selectedRoll === "assistance") {
+        if (selectedCategory && selectedCategory.trim() !== "") {
+          updateData.assigned_category_id = parseInt(selectedCategory);
+        } else {
+          // Si no hay categoría seleccionada, mantener la actual o poner null
+          updateData.assigned_category_id = currentUser?.assigned_category_id || null;
+        }
+      } else {
+        // Si no es asistente, limpiar categoría asignada
+        updateData.assigned_category_id = null;
       }
 
       console.log("📝 Datos a actualizar:", {
@@ -290,27 +360,77 @@ export default function ChangeCustomerRoll({
 
         {selectedRoll === "assistance" && (
           <div>
-            <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Categoría Asignada *
-            </label>
-            <select
-              id="category"
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full rounded-md border border-gray-300 dark:border-gray-600 py-2 px-3 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              disabled={loadingCategories}
-              required
-            >
-              <option value="">Selecciona una categoría</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name || cat.type}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Asigna una categoría específica al asistente
-            </p>
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Categoría Asignada *
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowCreateCategory(!showCreateCategory)}
+                className="text-xs text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 font-medium"
+              >
+                {showCreateCategory ? "Cancelar" : "+ Crear nueva"}
+              </button>
+            </div>
+            
+            {showCreateCategory ? (
+              <div className="mb-3 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                <form onSubmit={handleCreateCategory} className="space-y-2">
+                  <div>
+                    <input
+                      type="text"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="Nombre de la categoría (ej: Pasante, Senior)"
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 py-2 px-3 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <textarea
+                      value={newCategoryDescription}
+                      onChange={(e) => setNewCategoryDescription(e.target.value)}
+                      placeholder="Descripción (opcional)"
+                      rows={2}
+                      className="w-full rounded-md border border-gray-300 dark:border-gray-600 py-2 px-3 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm resize-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={creatingCategory}
+                    className="w-full bg-orange-500 dark:bg-orange-600 text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-orange-600 dark:hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {creatingCategory ? "Creando..." : "Crear Categoría"}
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <>
+                <select
+                  id="category"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-600 py-2 px-3 outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  disabled={loadingCategories}
+                  required
+                >
+                  <option value="">Selecciona una categoría</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name || cat.type}
+                    </option>
+                  ))}
+                </select>
+                {categories.length === 0 && !loadingCategories && (
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                    No hay categorías disponibles. Crea una nueva categoría para usuarios.
+                  </p>
+                )}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Asigna una categoría específica al asistente
+                </p>
+              </>
+            )}
           </div>
         )}
 

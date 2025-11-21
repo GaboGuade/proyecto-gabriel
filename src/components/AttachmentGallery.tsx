@@ -16,6 +16,8 @@ export default function AttachmentGallery({ ticketId, onAttachmentsChange }: Att
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [imageUrls, setImageUrls] = useState<Record<number, string>>({});
+  const [loadingImages, setLoadingImages] = useState<Set<number>>(new Set());
   const user = useSelector((state: RootState) => state.auth.user);
   const isAdmin = user?.roll === "admin" || user?.roll === "assistance";
 
@@ -28,10 +30,54 @@ export default function AttachmentGallery({ ticketId, onAttachmentsChange }: Att
     try {
       const data = await getTicketAttachments(ticketId);
       setAttachments(data);
+      
+      // Precargar URLs de imágenes para las miniaturas
+      const imageAttachments = data.filter(att => isImage(att.file_type));
+      const urlMap: Record<number, string> = {};
+      
+      await Promise.all(
+        imageAttachments.map(async (att) => {
+          try {
+            const url = await getAttachmentUrl(att);
+            urlMap[att.id] = url;
+          } catch (err) {
+            console.error(`Error cargando URL para attachment ${att.id}:`, err);
+          }
+        })
+      );
+      
+      setImageUrls(urlMap);
     } catch (error: any) {
       toast.error("Error al cargar adjuntos: " + error.message);
     } finally {
       setLoading(false);
+    }
+  }
+  
+  async function loadImageUrl(attachment: Attachment) {
+    if (imageUrls[attachment.id]) {
+      return imageUrls[attachment.id];
+    }
+    
+    if (loadingImages.has(attachment.id)) {
+      return null;
+    }
+    
+    setLoadingImages(prev => new Set(prev).add(attachment.id));
+    
+    try {
+      const url = await getAttachmentUrl(attachment);
+      setImageUrls(prev => ({ ...prev, [attachment.id]: url }));
+      return url;
+    } catch (error) {
+      console.error(`Error cargando URL para attachment ${attachment.id}:`, error);
+      return null;
+    } finally {
+      setLoadingImages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(attachment.id);
+        return newSet;
+      });
     }
   }
 
@@ -93,17 +139,30 @@ export default function AttachmentGallery({ ticketId, onAttachmentsChange }: Att
             >
               {isImage(attachment.file_type) ? (
                 <div
-                  className="aspect-square bg-gray-100 dark:bg-gray-700 rounded cursor-pointer overflow-hidden mb-2"
+                  className="aspect-square bg-gray-100 dark:bg-gray-700 rounded cursor-pointer overflow-hidden mb-2 relative"
                   onClick={() => handlePreview(attachment)}
                 >
-                  <img
-                    src={attachment.file_path}
-                    alt={attachment.file_name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
+                  {imageUrls[attachment.id] ? (
+                    <img
+                      src={imageUrls[attachment.id]}
+                      alt={attachment.file_name}
+                      className="w-full h-full object-cover"
+                      onError={async (e) => {
+                        // Si falla, intentar recargar la URL
+                        const url = await loadImageUrl(attachment);
+                        if (url && e.target) {
+                          (e.target as HTMLImageElement).src = url;
+                        } else {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }
+                      }}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="animate-pulse text-gray-400 text-xs">Cargando...</div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center mb-2">
@@ -153,16 +212,22 @@ export default function AttachmentGallery({ ticketId, onAttachmentsChange }: Att
           className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
           onClick={() => setPreviewUrl(null)}
         >
-          <div className="max-w-4xl max-h-full">
+          <div className="max-w-4xl max-h-full relative">
             <img
               src={previewUrl}
               alt="Vista previa"
               className="max-w-full max-h-[90vh] object-contain"
+              onError={(e) => {
+                console.error("Error cargando imagen:", e);
+                toast.error("Error al cargar la imagen. Intenta descargarla directamente.");
+                setPreviewUrl(null);
+              }}
+              crossOrigin="anonymous"
             />
           </div>
           <button
             onClick={() => setPreviewUrl(null)}
-            className="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-75"
+            className="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-75 z-10"
           >
             <FiX className="w-6 h-6" />
           </button>
